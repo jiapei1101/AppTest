@@ -31,6 +31,7 @@ class sql(
      * 獲取支出或收入總金額
      * @param type 收入或支出的類型 ("收入" 或 "支出")
      * @return 總金額 (Double)
+     * jiapei 修改
      */
     fun getTotalAmount(type: String): Double {
         val db = readableDatabase
@@ -47,6 +48,7 @@ class sql(
      * 獲取記錄筆數
      * @param type 收入或支出的類型 ("收入" 或 "支出")
      * @return 記錄的筆數 (Int)
+     * jiapei修改
      */
     fun getRecordCount(type: String): Int {
         val db = readableDatabase
