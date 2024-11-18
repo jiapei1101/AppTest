@@ -1,0 +1,7 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#FDFAF8" />
+    <corners android:radius="16dp" />
+</shape>
+
+// res/dreawable/rounded_corner.xml
+//創建一個新的底圖，讓邊角圓滑
