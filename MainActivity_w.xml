@@ -1,0 +1,144 @@
+package com.example.monthlyyearlyfinance
+
+import android.annotation.SuppressLint
+import android.app.Dialog
+import android.content.Intent
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.widget.Button
+import android.widget.TextView
+import android.widget.NumberPicker
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import sql
+
+import java.util.*
+
+class MainActivity_w : AppCompatActivity() {
+
+    private lateinit var dbHelper: sql
+
+    @SuppressLint("MissingInflatedId")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main_w)
+
+        dbHelper = sql(this)
+
+        updateUI()
+
+        val choose_btn_w = findViewById<Button>(R.id.choose_btn_w)
+        choose_btn_w.setOnClickListener {
+            showYearMonthPickerDialog(choose_btn_w)
+        }
+
+        val barChart = findViewById<BarChart>(R.id.barChart)
+        val barChart2 = findViewById<BarChart>(R.id.barChart2)
+
+        setupBarChart(barChart, "in")
+        setupBarChart(barChart2, "out")
+
+        val monthBtn = findViewById<Button>(R.id.month_btn)
+        monthBtn.setOnClickListener {
+            // 跳轉回本頁
+            val intent = Intent(this, MainActivity_w::class.java)
+            startActivity(intent)
+        }
+
+        val yearBtn = findViewById<Button>(R.id.year_btn)
+        yearBtn.setOnClickListener {
+            // 跳轉至 MainActivity2
+            val intent = Intent(this, MainActivity_w2::class.java)
+            startActivity(intent)
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+    }
+
+    private fun setupBarChart(barChart: BarChart, type: String) {
+        val entries = ArrayList<BarEntry>()
+        val cursor = dbHelper.readableDatabase.rawQuery("SELECT date, money FROM data WHERE type = ?", arrayOf(type)) // 使用 dbHelper
+        while (cursor.moveToNext()) {
+            val date = cursor.getString(0)
+            val money = cursor.getFloat(1)
+            val month = date.substring(5, 7).toFloatOrNull()
+            if (month != null) {
+                entries.add(BarEntry(month, money))
+            }
+        }
+        cursor.close()
+
+        val label = if (type == "in") "收入趨勢" else "支出趨勢"
+        val dataSet = BarDataSet(entries, label)
+        dataSet.color = if (type == "in") getColor(R.color.teal_200) else getColor(R.color.red_500)
+        barChart.data = BarData(dataSet)
+        barChart.description.isEnabled = false
+        barChart.animateY(1000)
+        barChart.invalidate()
+    }
+
+    private fun showYearMonthPickerDialog(choose_btn_w: Button) {
+        val dialog = Dialog(this)
+        val inflater = LayoutInflater.from(this)
+        val view = inflater.inflate(R.layout.dialog_year_month_picker, null)
+        dialog.setContentView(view)
+
+        val yearPicker = view.findViewById<NumberPicker>(R.id.year_picker)
+        val monthPicker = view.findViewById<NumberPicker>(R.id.month_picker)
+        val confirmButton = view.findViewById<Button>(R.id.confirm_button)
+
+        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        yearPicker.minValue = 1900
+        yearPicker.maxValue = currentYear
+        yearPicker.value = currentYear
+
+        monthPicker.minValue = 1
+        monthPicker.maxValue = 12
+        monthPicker.value = Calendar.getInstance().get(Calendar.MONTH) + 1
+
+        confirmButton.setOnClickListener {
+            val selectedYear = yearPicker.value
+            val selectedMonth = monthPicker.value
+            showToast("你選擇的是：${selectedYear}年 ${selectedMonth}月")
+            choose_btn_w.text = "${selectedYear}年 ${selectedMonth}月"
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun updateUI() {
+        // 獲取總金額和筆數
+        val totalOutcome = dbHelper.getTotalAmount("支出")
+        val totalIncome = dbHelper.getTotalAmount("收入")
+        val outcomeCount = dbHelper.getRecordCount("支出")
+        val incomeCount = dbHelper.getRecordCount("收入")
+
+        // 更新 TextView
+        val outcomeNum: TextView = findViewById(R.id.outcome_num)
+        val incomeNum: TextView = findViewById(R.id.income_num)
+        val balanceNum: TextView = findViewById(R.id.balance_num)
+
+        val outcomeWd: TextView = findViewById(R.id.outcome_wd)
+        val incomeWd: TextView = findViewById(R.id.income_wd)
+
+        outcomeWd.text = "共支出${outcomeCount}筆，合計"
+        outcomeNum.text = totalOutcome.toInt().toString()
+        incomeWd.text = "${incomeCount}筆收入"
+        incomeNum.text = totalIncome.toInt().toString()
+        balanceNum.text = (totalIncome - totalOutcome).toInt().toString()
+    }
+
+    private fun showToast(text: String) =
+        Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
+}
